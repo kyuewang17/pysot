@@ -70,7 +70,7 @@ class SiamRPNTracker(SiameseTracker):
         """
         args:
             img(np.ndarray): BGR image
-            bbox: (x, y, w, h) bbox
+            bbox: (x, y, w, h) bbox =>> < Left-top Width Height >
         """
         self.center_pos = np.array([bbox[0]+(bbox[2]-1)/2,
                                     bbox[1]+(bbox[3]-1)/2])
@@ -81,14 +81,41 @@ class SiamRPNTracker(SiameseTracker):
         h_z = self.size[1] + cfg.TRACK.CONTEXT_AMOUNT * np.sum(self.size)
         s_z = round(np.sqrt(w_z * h_z))
 
-        # calculate channle average
+        # calculate channel average
+        # (average value for each channels)
+        # if img.shape = (M X N X C),
         self.channel_average = np.mean(img, axis=(0, 1))
 
         # get crop
         z_crop = self.get_subwindow(img, self.center_pos,
                                     cfg.TRACK.EXEMPLAR_SIZE,
                                     s_z, self.channel_average)
+        self.z = z_crop
         self.model.template(z_crop)
+
+    def update_z(self, img, bbox, interpolation_rate=0.0025):
+        self.center_pos = np.array([bbox[0] + (bbox[2] - 1) / 2,
+                                    bbox[1] + (bbox[3] - 1) / 2])
+        self.size = np.array([bbox[2], bbox[3]])
+
+        # calculate z crop size
+        w_z = self.size[0] + cfg.TRACK.CONTEXT_AMOUNT * np.sum(self.size)
+        h_z = self.size[1] + cfg.TRACK.CONTEXT_AMOUNT * np.sum(self.size)
+        s_z = round(np.sqrt(w_z * h_z))
+
+        # calculate channel average
+        self.channel_average = np.mean(img, axis=(0, 1))
+
+        # get crop
+        z_crop = self.get_subwindow(img, self.center_pos,
+                                    cfg.TRACK.EXEMPLAR_SIZE,
+                                    s_z, self.channel_average)
+
+        # Exemplar Interpolation
+        self.z = (1-interpolation_rate)*self.z + interpolation_rate*z_crop
+        self.model.template(self.z)
+
+
 
     def track(self, img):
         """
@@ -147,7 +174,7 @@ class SiamRPNTracker(SiameseTracker):
         cx, cy, width, height = self._bbox_clip(cx, cy, width,
                                                 height, img.shape[:2])
 
-        # udpate state
+        # update state
         self.center_pos = np.array([cx, cy])
         self.size = np.array([width, height])
 

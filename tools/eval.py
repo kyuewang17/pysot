@@ -29,6 +29,20 @@ parser.set_defaults(show_video_level=False)
 args = parser.parse_args()
 
 
+######### Manually Add Parser Arguments for Debugging Code #########
+curr_file_base_path = os.getcwd()
+experiments_base_path = os.path.join(os.path.dirname(curr_file_base_path), "experiments")
+model_base_path = os.path.join(experiments_base_path, "siamrpn_alex_dwxcorr_otb")
+
+
+args.tracker_path = os.path.join(model_base_path, "results")
+if os.path.isdir(args.tracker_path) is not True:
+    assert 0, "Tracker Path ('results' path) not designated!"
+args.dataset = "OTB100"
+args.num = 1
+args.tracker_prefix = "model"
+
+
 def main():
     tracker_dir = os.path.join(args.tracker_path, args.dataset)
     trackers = glob(os.path.join(args.tracker_path,

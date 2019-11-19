@@ -44,6 +44,16 @@ parser.add_argument('--local_rank', type=int, default=0,
 args = parser.parse_args()
 
 
+######### Manually Add Parser Arguments for Training Neural Networks #########
+curr_file_base_path = os.getcwd()
+experiments_base_path = os.path.join(os.path.dirname(curr_file_base_path), "experiments")
+
+model_name = "siamrpn_r50_l234_dwxcorr"
+
+args.cfg = os.path.join(experiments_base_path, model_name, "config.yaml")
+
+
+
 def seed_torch(seed=0):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
