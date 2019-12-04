@@ -21,6 +21,10 @@ from toolkit.datasets import DatasetFactory
 from toolkit.utils.region import vot_overlap, vot_float2str
 
 
+# Set GPU Devices (visibility setting)
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+
 parser = argparse.ArgumentParser(description='siamrpn tracking')
 parser.add_argument('--dataset', type=str,
         help='datasets')

@@ -35,7 +35,7 @@ experiments_base_path = os.path.join(os.path.dirname(curr_file_base_path), "expe
 model_base_path = os.path.join(experiments_base_path, "siamrpn_alex_dwxcorr_otb")
 
 
-args.tracker_path = os.path.join(model_base_path, "results")
+args.tracker_path = os.path.join(model_base_path, "results_allframe_exemplar_update_rate_0.0025")
 if os.path.isdir(args.tracker_path) is not True:
     assert 0, "Tracker Path ('results' path) not designated!"
 args.dataset = "OTB100"
