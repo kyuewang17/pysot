@@ -54,7 +54,7 @@ args.snapshot = os.path.join(model_base_path, "model.pth")
 args.vis = False
 
 
-def main():
+def main(frame_interval, interpolation_rate):
     # load config
     cfg.merge_from_file(args.config)
 
@@ -168,6 +168,10 @@ def main():
             scores = []
             track_times = []
 
+            # PARAMETERS
+            # frame_interval = 2
+            # interpolation_rate = 0.005
+
             for idx, (img, gt_bbox) in enumerate(video):
                 tic = cv2.getTickCount()
                 if idx == 0:
@@ -186,8 +190,11 @@ def main():
                     pred_bboxes.append(pred_bbox)
                     scores.append(outputs['best_score'])
 
-                    # Adaptive Template(exemplar update)
-                    tracker.update_z(img, pred_bbox)
+                    ######################################
+                    # Adaptive Template(exemplar update) #
+                    ######################################
+                    if idx % frame_interval == 0:
+                        tracker.update_z(img, pred_bbox, interpolation_rate=interpolation_rate)
 
 
                 toc += cv2.getTickCount() - tic
@@ -244,7 +251,9 @@ def main():
                         f.write("{:.6f}\n".format(x))
             # OTB-100 HERE!!!!!!!!!!!!!!
             else:
-                model_path = os.path.join(result_save_base_path, 'results', args.dataset, model_name)
+                result_folder_name = "results_{0:d}frame_exemplar_update_rate_{1:s}".format(frame_interval, str(interpolation_rate))
+                model_path = os.path.join(result_save_base_path, result_folder_name, args.dataset, model_name)
+                # model_path = os.path.join(result_save_base_path, 'results', args.dataset, model_name)
                 if not os.path.isdir(model_path):
                     os.makedirs(model_path)
                 result_path = os.path.join(model_path, '{}.txt'.format(video.name))
@@ -267,4 +276,13 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # frame_interval_list = [100000]
+    frame_interval_list = [20, 50, 75, 100, 150]
+    # frame_interval_list = [2]
+
+    # update_rate_list = [0.075]
+    update_rate_list = [0.00125, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.075, 0.1]
+
+    for frame_interval in frame_interval_list:
+        for update_rate in update_rate_list:
+            main(frame_interval, update_rate)

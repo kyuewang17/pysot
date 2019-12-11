@@ -112,8 +112,11 @@ class SiamRPNTracker(SiameseTracker):
                                     s_z, self.channel_average)
 
         # Exemplar Interpolation
-        self.z = (1-interpolation_rate)*self.z + interpolation_rate*z_crop
-        self.model.template(self.z)
+        if interpolation_rate is not None:
+            self.z = (1-interpolation_rate)*self.z + interpolation_rate*z_crop
+            self.model.template(self.z)
+        else:
+            self.model.template(z_crop)
 
 
 

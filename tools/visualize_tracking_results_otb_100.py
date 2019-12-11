@@ -9,10 +9,16 @@ import copy
 
 
 # Visualization Mode
-is_visualization = True
+is_visualization = False
 
 # Save Mode
-is_save_results = False
+is_save_results = True
+is_save_override = True
+
+# <User Input> Model Name
+model_name = "siamrpn_alex_dwxcorr_otb"
+result_folder_name = "results_allframe_exemplar_update_rate_0.0025"     # this one!!
+# result_folder_name = "results_allframe_exemplar_update_rate_0.0025"
 
 
 def cxywh_to_ltrbxy(bbox_cxywh):
@@ -83,10 +89,6 @@ def draw_fidx_on_img(target_frame_img, fidx, text_color, text_padding, extra_pad
                 fontScale=1.2, color=(text_color[0], text_color[1], text_color[2]), thickness=2)
 
 
-# <User Input> Model Name
-model_name = "siamrpn_alex_dwxcorr_otb"
-result_folder_name = "results_allframe_exemplar_update_rate_0.0025"
-
 curr_file_base_path = os.getcwd()
 experiments_path = os.path.join(os.path.dirname(curr_file_base_path), "experiments")
 
@@ -114,7 +116,8 @@ if os.path.isdir(qualitative_tracking_result_visualization_path) is False:
 otb100_sequence_base_path = os.path.join(os.path.dirname(curr_file_base_path), "testing_dataset", "OTB100")
 
 # For Each Sequence,
-for seq_idx, sequence_file_name in enumerate(seq_result_file_name_list):
+start_sequence_idx = 0
+for seq_idx, sequence_file_name in enumerate(seq_result_file_name_list[start_sequence_idx:]):
     sequence_name = sequence_file_name.split(".")[0]
     img_seq_folder = os.path.join(otb100_sequence_base_path, sequence_name, "img")
 
@@ -124,7 +127,10 @@ for seq_idx, sequence_file_name in enumerate(seq_result_file_name_list):
 
     # Read Ground Truth Result Text File for Current Sequence
     curr_seq_gt_file_path = os.path.join(otb100_sequence_base_path, sequence_name, "groundtruth.txt")
-    seq_gt_results = np.loadtxt(curr_seq_gt_file_path, delimiter=",", dtype=np.float64)
+    try:
+        seq_gt_results = np.loadtxt(curr_seq_gt_file_path, delimiter=",", dtype=np.float64)
+    except:
+        seq_gt_results = np.loadtxt(curr_seq_gt_file_path, dtype=np.float64)
 
     # Check for Frame Lengths (will select minimum frame length)
     frame_lengths_list = [seq_tracking_results.shape[0], seq_gt_results.shape[0]]
@@ -142,6 +148,11 @@ for seq_idx, sequence_file_name in enumerate(seq_result_file_name_list):
 
     # For Each Frames,
     for fidx, frame_file_name in enumerate(curr_seq_frame_file_name_list):
+        # Tracking Message
+        seq_process_str = "({0:d}/{1:d}) ".format(seq_idx+1, len(seq_result_file_name_list))
+        tracking_mesg = "[Sequence:{0:s}] Tracking (Frame:{1:d}/{2:d})".format(sequence_name, fidx+1, len(curr_seq_frame_file_name_list))
+        print(seq_process_str+tracking_mesg)
+
         # Get Current Frame Image File Path
         frame_file_path = os.path.join(img_seq_folder, frame_file_name)
 
@@ -152,7 +163,11 @@ for seq_idx, sequence_file_name in enumerate(seq_result_file_name_list):
         draw_curr_frame = copy.deepcopy(curr_frame)
 
         # Get Current Frame Index (1)Tracking Result and (2)Ground-Truth Result
-        curr_track_bbox, curr_gt_bbox = seq_tracking_results[fidx, :], seq_gt_results[fidx, :]
+        try:
+            curr_track_bbox, curr_gt_bbox = seq_tracking_results[fidx, :], seq_gt_results[fidx, :]
+        except:
+            # Error Scene, continue to Next Sequence
+            continue
 
         # (1) Draw Tracking BBOX (blue bbox)
         draw_bbox_on_img(draw_curr_frame, curr_track_bbox, color=[0, 0, 255])
@@ -161,7 +176,7 @@ for seq_idx, sequence_file_name in enumerate(seq_result_file_name_list):
         draw_bbox_on_img(draw_curr_frame, curr_gt_bbox, color=[255, 0, 0])
 
         # Draw Frame Index Count
-        draw_fidx_on_img(draw_curr_frame, fidx+1, text_color=[255, 255, 255], text_padding=3)
+        draw_fidx_on_img(draw_curr_frame, fidx+1, text_color=[255, 255, 255], text_padding=5)
 
         # Show Image
         if is_visualization is True:
@@ -175,5 +190,12 @@ for seq_idx, sequence_file_name in enumerate(seq_result_file_name_list):
 
         # Save Image
         if is_save_results is True:
-            pass
+            curr_result_frame_file_name = "result_[{0:05d}].jpg".format(fidx+1)
+            curr_result_frame_file_path = os.path.join(curr_seq_result_path, curr_result_frame_file_name)
+            if (os.path.isfile(curr_result_frame_file_path) is False) or (is_save_override is True):
+                cv2.imwrite(curr_result_frame_file_path, cv2.cvtColor(draw_curr_frame, cv2.COLOR_RGB2BGR))
+            else:
+                print("[WARNING] Frame [{0:d}] for Sequence [{1:s}] already exists!".format(fidx, sequence_name))
+
+        pass
 
